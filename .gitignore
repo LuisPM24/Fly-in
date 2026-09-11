@@ -1,2 +1,6 @@
 .venv
 *.egg-info/
+.mypy_cache
+maps/
+src/__pycache__
+src/classes/__pycache__
