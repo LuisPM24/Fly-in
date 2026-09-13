@@ -7,12 +7,12 @@ install:
 
 run:
 	@echo "$(YELLOW) Running 'make run' command$(RESET)\n"
-	@uv run python -m src
+	@uv run python -m main
 	@echo "$(GREEN)\n'make run' command completed$(RESET)"
 
 debug:
 	@echo "$(YELLOW) Running 'make debug' command$(RESET)\n"
-	@uv run python -m pdb -m src
+	@uv run python -m pdb -m main
 	@echo "$(GREEN)\n'make debug' command completed$(RESET)"
 
 test:

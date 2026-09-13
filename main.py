@@ -1,4 +1,4 @@
-from .classes import Parser
+from parser import Parser
 
 
 def main() -> None:
