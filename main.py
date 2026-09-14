@@ -2,9 +2,10 @@ from parser import Parser
 
 
 def main() -> None:
-    parser = Parser().get_args()
-    print(parser.get_map())
-    print(parser.get_representation())
+    try:
+        parser = Parser()
+    except Exception as e:
+        print(f"Error - {e}")
 
 
 if __name__ == "__main__":
