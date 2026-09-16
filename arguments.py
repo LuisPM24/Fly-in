@@ -2,7 +2,7 @@ import argparse
 import os
 
 
-class Parser:
+class Arguments:
     """
     Validate the arguments and check that they meet the basic requirements
     for running the simulation
@@ -46,8 +46,8 @@ class Parser:
 
     def validate_arguments(self) -> None:
         if not os.access(self.selected_map, os.R_OK):
-            raise OSError("Cannot read from the selected map: "
-                          f"'{self.selected_map}'")
+            raise ValueError("Cannot read from the selected map: "
+                             f"'{self.selected_map}'")
         if self.visual_representation not in ["terminal", "graphical", "both"]:
-            raise OSError("Invalid representation option: "
-                          f"'{self.visual_representation}'")
+            raise ValueError("Invalid representation option: "
+                             f"'{self.visual_representation}'")

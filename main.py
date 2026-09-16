@@ -1,9 +1,9 @@
-from parser import Parser
+from map_parser import MapParser
 
 
 def main() -> None:
     try:
-        parser = Parser()
+        MapParser()
     except Exception as e:
         print(f"Error - {e}")
 
