@@ -1,5 +1,6 @@
 from arguments import Arguments
 from map_components import Hub
+from typing import Any
 
 
 class MapParser:
@@ -15,7 +16,6 @@ class MapParser:
         # self.connections: list[connection] = []
         # self.validate_hubs()
         self.get_hubs()
-        print(list(self.hubs))
 
     def get_hubs(self) -> None:
         with open(self.map, 'r') as file:
@@ -78,7 +78,56 @@ class MapParser:
             name: str = words[0]
             x_value: int = int(words[1])
             y_value: int = int(words[2])
+            properties: dict[str, Any] = {}
 
-            return Hub(is_start, is_end, name, x_value, y_value)
+            if len(words) > 3:
+                properties = self.validate_properties(line, words[3:])
+
+            return Hub(is_start, is_end, name, x_value, y_value, properties)
         except ValueError as e:
             raise ValueError(e)
+
+    def validate_properties(self, line: str, properties: list[str]
+                            ) -> dict[str, Any]:
+        if not properties:
+            return {}
+
+        properties_text: str = " ".join(properties)
+
+        if (not properties_text.startswith("[") or
+           not properties_text.endswith("]")):
+            raise ValueError("Invalid properties format for line: "
+                             f"'{line.strip()}'")
+
+        properties_text = properties_text[1:-1].strip()
+
+        if not properties_text:
+            raise ValueError("Empty properties block for line: "
+                             f"'{line.strip()}'")
+
+        if "[" in properties_text or "]" in properties_text:
+            raise ValueError("Invalid properties format for line: "
+                             f"'{line.strip()}'")
+
+        result: dict[str, Any] = {}
+
+        for metadata in properties_text.split():
+            if metadata.count("=") != 1:
+                raise ValueError(f"Invalid metadata '{metadata}'")
+
+            key, value = metadata.split("=", 1)
+
+            if not key or not value:
+                raise ValueError(f"Invalid metadata '{metadata}'")
+            elif key in result:
+                raise ValueError(f"Duplicate metadata '{key}'")
+            elif key == "max_drones":
+                try:
+                    result[key] = int(value)
+                except ValueError:
+                    raise ValueError("Invalid max_drones value: "
+                                     f"'{value}'")
+            else:
+                result[key] = value
+
+        return result

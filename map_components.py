@@ -10,8 +10,14 @@ class Hub:
         self.name = name
         self.x = x
         self.y = y
-        self.properties: dict[str, Any] = (properties if
-                                           properties is not None else {})
+        self.properties: dict[str, Any] = {
+            "zone": "normal",
+            "color": "none",
+            "max_drones": 1,
+        }
+
+        if properties is not None:
+            self.properties.update(properties)
 
         self.validate_hub()
 
@@ -53,21 +59,8 @@ class Hub:
             raise ValueError(f"Invalid zone '{value}' at '{self.name}' hub")
 
     def validate_color(self, value: Any) -> None:
-        valid_colors: set[str] = {
-            "green",
-            "blue",
-            "yellow",
-            "red",
-            "pink",
-            "purple"
-        }
-
         if (not isinstance(value, str) or
-           not value or any(char.isspace() for char in value) or
-           value not in valid_colors):
-            raise ValueError(f"Invalid color '{value}' at '{self.name}' hub")
-
-        if not value or any(char.isspace() for char in value):
+           not value or any(char.isspace() for char in value)):
             raise ValueError(f"Invalid color '{value}' at '{self.name}' hub")
 
     def validate_max_drones(self, value: Any) -> None:
