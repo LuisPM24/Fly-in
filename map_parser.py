@@ -1,5 +1,5 @@
 from arguments import Arguments
-from map_components import Hub
+from map_components import Hub, Connection
 from typing import Any
 
 
@@ -13,42 +13,42 @@ class MapParser:
         self.start_hub: Hub | None = None
         self.end_hub: Hub | None = None
         self.hubs: dict[str, Hub] = {}
-        # self.connections: list[connection] = []
+        self.connections: list[Connection] = []
         # self.validate_hubs()
-        self.get_hubs()
+        self.parse_map()
 
-    def get_hubs(self) -> None:
-        with open(self.map, 'r') as file:
+    def parse_map(self) -> None:
+        with open(self.map, "r") as file:
             for line in file:
                 if (line.startswith("#") or line.startswith("nb_drones:")
-                   or line.startswith("connection:") or line.isspace()):
+                   or line.isspace()):
                     continue
-                elif line.startswith("start_hub:"):
+
+                if line.startswith("start_hub:"):
                     if self.start_hub is not None:
                         raise ValueError("Two or more start_hub definitions")
-
-                    new_hub: Hub = self.get_hub("start_hub:", line)
+                    new_hub: Hub = self.parse_hub("start_hub:", line)
                     self.add_hub(new_hub)
                     self.start_hub = new_hub
-
                 elif line.startswith("end_hub:"):
                     if self.end_hub is not None:
                         raise ValueError("Two or more end_hub definitions")
-
-                    new_hub = self.get_hub("end_hub:", line)
+                    new_hub = self.parse_hub("end_hub:", line)
                     self.add_hub(new_hub)
                     self.end_hub = new_hub
-
                 elif line.startswith("hub:"):
-                    new_hub = self.get_hub("hub:", line)
+                    new_hub = self.parse_hub("hub:", line)
                     self.add_hub(new_hub)
+                elif line.startswith("connection:"):
+                    new_connection: Connection = (self.parse_connection(line))
+                    self.connections.append(new_connection)
                 else:
                     raise ValueError(f"Invalid line at map definition: {line}")
 
-            if self.start_hub is None:
-                raise ValueError("No start_hub at map definition")
-            if self.end_hub is None:
-                raise ValueError("No end_hub at map definition")
+        if self.start_hub is None:
+            raise ValueError("No start_hub at map definition")
+        elif self.end_hub is None:
+            raise ValueError("No end_hub at map definition")
 
     def add_hub(self, hub: Hub) -> None:
         if hub.name in self.hubs:
@@ -56,7 +56,7 @@ class MapParser:
                 f"Two or more hubs with the same name: '{hub.name}'")
         self.hubs[hub.name] = hub
 
-    def get_hub(self, to_search: str, line: str) -> Hub:
+    def parse_hub(self, to_search: str, line: str) -> Hub:
         if not line:
             raise ValueError(f"Invalid line: '{line}'")
 
@@ -81,14 +81,14 @@ class MapParser:
             properties: dict[str, Any] = {}
 
             if len(words) > 3:
-                properties = self.validate_properties(line, words[3:])
+                properties = self.validate_hub_properties(line, words[3:])
 
             return Hub(is_start, is_end, name, x_value, y_value, properties)
         except ValueError as e:
             raise ValueError(e)
 
-    def validate_properties(self, line: str, properties: list[str]
-                            ) -> dict[str, Any]:
+    def validate_hub_properties(self, line: str, properties: list[str]
+                                ) -> dict[str, Any]:
         if not properties:
             return {}
 
@@ -131,3 +131,55 @@ class MapParser:
                 result[key] = value
 
         return result
+
+    def get_hub(self, name: str) -> Hub:
+        if name not in self.hubs:
+            raise ValueError(f"Hub not found: '{name}'")
+        return self.hubs[name]
+
+    def parse_connection(self, line: str) -> Connection:
+        new_line: str = line.replace("connection:", "", 1)
+        words: list[str] = new_line.split()
+
+        if len(words) == 0 or len(words) > 2:
+            raise ValueError(f"Invalid connection in line: '{line.strip()}'")
+
+        points: list[str] = words[0].split("-")
+
+        if len(points) != 2 or not points[0] or not points[1]:
+            raise ValueError(f"Invalid connection in line: '{line.strip()}'")
+
+        point_a: Hub = self.get_hub(points[0])
+        point_b: Hub = self.get_hub(points[1])
+        capacity: int = 1
+
+        if len(words) == 2:
+            capacity = self.parse_connection_properties(words[1], line)
+
+        return Connection(point_a, point_b, capacity)
+
+    def parse_connection_properties(self, metadata: str, line: str) -> int:
+        if (not metadata.startswith("[") or
+           not metadata.endswith("]")):
+            raise ValueError("Invalid connection metadata format in line: "
+                             f"'{line.strip()}'")
+
+        metadata = metadata[1:-1]
+
+        if metadata.count("=") != 1:
+            raise ValueError(f"Invalid connection metadata: '{metadata}'")
+
+        key, value = metadata.split("=", 1)
+
+        if key != "max_link_capacity":
+            raise ValueError(f"Invalid connection metadata: '{key}'")
+
+        try:
+            capacity: int = int(value)
+        except ValueError:
+            raise ValueError(f"Invalid max_link_capacity: '{value}'")
+
+        if capacity <= 0:
+            raise ValueError(f"Invalid max_link_capacity: '{value}'")
+
+        return capacity

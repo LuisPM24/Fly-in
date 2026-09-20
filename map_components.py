@@ -74,3 +74,15 @@ class Hub:
         if value <= 0:
             raise ValueError(f"Invalid max_drones '{value}' at "
                              f"'{self.name}' hub")
+
+
+class Connection:
+    def __init__(self, pointA: Hub, pointB: Hub, capacity: int
+                 ) -> None:
+        self.pointA = pointA
+        self.pointB = pointB
+        self.capacity = capacity
+
+        if self.capacity <= 0:
+            raise ValueError("Invalid capacity for connection between "
+                             f"'{pointA.name}'-'{pointB.name}'")
