@@ -10,19 +10,32 @@ class MapParser:
 
         self.map: str = arguments.selected_map
         self.visual: str = arguments.visual_representation
+        self.nb_drones: int | None = None
         self.start_hub: Hub | None = None
         self.end_hub: Hub | None = None
         self.hubs: dict[str, Hub] = {}
         self.connections: list[Connection] = []
+        self.connection_keys: set[frozenset[str]] = set()
         # self.validate_hubs()
         self.parse_map()
 
     def parse_map(self) -> None:
+        drones: bool = False
+
         with open(self.map, "r") as file:
             for line in file:
-                if (line.startswith("#") or line.startswith("nb_drones:")
-                   or line.isspace()):
+                if (line.startswith("#") or line.isspace()):
                     continue
+
+                if line.startswith("nb_drones:"):
+                    if self.nb_drones is None:
+                        self.parse_nb_drones(line)
+                        drones = True
+                        continue
+                    else:
+                        raise ValueError("Two or more nb_drones definitions")
+                elif drones is False:
+                    raise ValueError("nb_drones must be first line")
 
                 if line.startswith("start_hub:"):
                     if self.start_hub is not None:
@@ -74,18 +87,15 @@ class MapParser:
         elif to_search == "end_hub:":
             is_end = True
 
-        try:
-            name: str = words[0]
-            x_value: int = int(words[1])
-            y_value: int = int(words[2])
-            properties: dict[str, Any] = {}
+        name: str = words[0]
+        x_value: int = int(words[1])
+        y_value: int = int(words[2])
+        properties: dict[str, Any] = {}
 
-            if len(words) > 3:
-                properties = self.validate_hub_properties(line, words[3:])
+        if len(words) > 3:
+            properties = self.validate_hub_properties(line, words[3:])
 
-            return Hub(is_start, is_end, name, x_value, y_value, properties)
-        except ValueError as e:
-            raise ValueError(e)
+        return Hub(is_start, is_end, name, x_value, y_value, properties)
 
     def validate_hub_properties(self, line: str, properties: list[str]
                                 ) -> dict[str, Any]:
@@ -145,6 +155,10 @@ class MapParser:
             raise ValueError(f"Invalid connection in line: '{line.strip()}'")
 
         points: list[str] = words[0].split("-")
+        connection_key: frozenset[str] = frozenset([points[0], points[1]])
+
+        if connection_key in self.connection_keys:
+            raise ValueError(f"Duplicate connection: '{line}'")
 
         if len(points) != 2 or not points[0] or not points[1]:
             raise ValueError(f"Invalid connection in line: '{line.strip()}'")
@@ -155,6 +169,8 @@ class MapParser:
 
         if len(words) == 2:
             capacity = self.parse_connection_properties(words[1], line)
+
+        self.connection_keys.add(connection_key)
 
         return Connection(point_a, point_b, capacity)
 
@@ -183,3 +199,20 @@ class MapParser:
             raise ValueError(f"Invalid max_link_capacity: '{value}'")
 
         return capacity
+
+    def parse_nb_drones(self, line: str) -> int:
+        if not line:
+            raise ValueError(f"Invalid line: {line}")
+
+        new_line = line.replace("nb_drones:", "", 1)
+        words = new_line.split()
+
+        if len(words) != 1:
+            raise ValueError(f"Invalid nb_drones declaration: {line}")
+
+        drones: int = int(words[0])
+
+        if drones <= 0:
+            raise ValueError(f"Invalid nb_drones declaration: {line}")
+
+        return drones
