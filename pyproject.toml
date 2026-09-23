@@ -9,8 +9,16 @@ authors = [
 dependencies = [
     "mypy",
     "flake8",
-    "pytest",
-    "pydantic"
+    "pytest"
+]
+
+[tool.setuptools]
+py-modules = [
+    "arguments",
+    "main",
+    "map_components",
+    "map_parser",
+    "simulation",
 ]
 
 [build-system]

@@ -4,6 +4,9 @@ from typing import Any
 
 
 class MapParser:
+    """
+    Parses and generates a valid map
+    """
     def __init__(self, selected_map: str = "",
                  visual_representation: str = "") -> None:
         arguments = Arguments(selected_map, visual_representation)
@@ -19,6 +22,9 @@ class MapParser:
         self.parse_map()
 
     def parse_map(self) -> None:
+        """
+        Gets all data from the selected map
+        """
         with open(self.map, "r") as file:
             for line_number, line in enumerate(file, start=1):
                 if (line.startswith("#") or line.isspace()):
@@ -69,12 +75,18 @@ class MapParser:
             raise ValueError("No end_hub at map definition")
 
     def add_hub(self, hub: Hub, line_number: int) -> None:
+        """
+        Adds a Hub class to the internal map dictionary
+        """
         if hub.name in self.hubs:
             raise ValueError(f"(Line {line_number}) Two or more hubs with the"
                              f" same name: '{hub.name}'")
         self.hubs[hub.name] = hub
 
     def parse_hub(self, to_search: str, line: str, line_number: int) -> Hub:
+        """
+        Parse and returns a Hub class
+        """
         if not line:
             raise ValueError(f"(Line {line_number}) Invalid line: '{line}'")
 
@@ -105,6 +117,10 @@ class MapParser:
 
     def validate_hub_properties(self, line: str, properties: list[str],
                                 line_number: int) -> dict[str, Any]:
+        """
+        Validates hub metadata. Returns a dictionary with all
+        info from the Hub.
+        """
         if not properties:
             return {}
 
@@ -152,11 +168,17 @@ class MapParser:
         return result
 
     def get_hub(self, name: str, line_number: int) -> Hub:
+        """
+        Search and return a Hub class
+        """
         if name not in self.hubs:
             raise ValueError(f"(Line {line_number}) Hub not found: '{name}'")
         return self.hubs[name]
 
     def parse_connection(self, line: str, line_number: int) -> Connection:
+        """
+        Parse and returns a connection class
+        """
         new_line: str = line.replace("connection:", "", 1)
         words: list[str] = new_line.split()
 
@@ -177,15 +199,17 @@ class MapParser:
         capacity: int = 1
 
         if len(words) == 2:
-            capacity = self.parse_connection_properties(words[1], line,
-                                                        line_number)
+            capacity = self.parse_connection_properties(words[1], line_number)
 
         self.connection_keys.add(connection_key)
 
         return Connection(point_a, point_b, capacity)
 
-    def parse_connection_properties(self, metadata: str, line: str,
+    def parse_connection_properties(self, metadata: str,
                                     line_number: int) -> int:
+        """
+        Parse all metadata from a Connection class
+        """
         if (not metadata.startswith("[") or
            not metadata.endswith("]")):
             raise ValueError(f"(Line {line_number}) Invalid connection "
@@ -215,7 +239,25 @@ class MapParser:
 
         return capacity
 
+    def get_connections(self, name: str) -> list[Connection]:
+        """
+        Returns all related connections to a Hub name
+        """
+        if name not in self.hubs:
+            raise ValueError(f"Invalid hub: '{name}'")
+
+        return_value: list[Connection] = []
+
+        for conn in self.connections:
+            if conn.pointA.name or conn.pointB.name is name:
+                return_value.append(conn)
+
+        return return_value
+
     def parse_nb_drones(self, line: str, line_number: int) -> int:
+        """
+        Validates and return the amount of nb_drones marked in the map
+        """
         if not line:
             raise ValueError(f"(Line {line_number}) Invalid line")
 
