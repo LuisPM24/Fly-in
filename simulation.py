@@ -1,29 +1,187 @@
+import heapq
 from map_parser import MapParser
-from map_components import Connection
+from map_components import Hub, Connection
 
 
 class Simulation:
     """
-    Creates the Simulation class and launch a simulation via terminal,
-    graphical or both
+    Creates the Simulation class and launches a simulation via terminal,
+    graphical interface or both.
     """
-    def __init__(self, map: MapParser) -> None:
-        self.map = map
+    def __init__(self, map_parser: MapParser) -> None:
+        self.map = map_parser
+        self.graph: dict[str, list[Connection]] = self.get_graph()
 
-        if not map:
-            raise ValueError("Invalid map for Simulation class")
-
-        self.graph = self.get_graph()
-        # self.launch
+        if (self.map.start_hub is None) or (self.map.end_hub is None):
+            return
+        print(
+            self.dijkstra(
+                self.graph,
+                self.map.start_hub.name,
+                self.map.end_hub.name,
+                None,
+                None
+            )
+        )
 
     def get_graph(self) -> dict[str, list[Connection]]:
         """
-        Generates a Hub-Connection graph
+        Generates a Hub-Connection graph.
         """
-        return_value: dict[str, list[Connection]] = {}
+        graph: dict[str, list[Connection]] = {}
 
         for name in self.map.hubs:
-            values: list[Connection] = self.map.get_connections(name)
-            return_value[name] = values
+            graph[name] = self.map.get_connections(name)
 
-        return return_value
+        return graph
+
+    def dijkstra(self, graph: dict[str, list[Connection]], start: str,
+                 end: str, ignored_hubs: set[str] | None = None,
+                 ignored_connections: set[frozenset[str]] | None = None
+                 ) -> list[str]:
+        """
+        Searches the shortest path from start to end.
+        """
+        if start not in graph:
+            raise ValueError(f"Invalid start hub: '{start}'")
+
+        if end not in graph:
+            raise ValueError(f"Invalid end hub: '{end}'")
+
+        if ignored_hubs is None:
+            ignored_hubs = set()
+
+        if ignored_connections is None:
+            ignored_connections = set()
+
+        distances: dict[str, int | None] = {
+            name: None
+            for name in graph
+        }
+
+        priority_count: dict[str, int] = {
+            name: -1
+            for name in graph
+        }
+
+        previous: dict[str, str | None] = {
+            name: None
+            for name in graph
+        }
+
+        distances[start] = 0
+        priority_count[start] = 0
+
+        queue: list[tuple[int, int, str]] = []
+
+        heapq.heappush(
+            queue,
+            (0, 0, start)
+        )
+
+        while queue:
+            current_distance, negative_priority, current_hub = (
+                heapq.heappop(queue)
+            )
+
+            current_priority: int = -negative_priority
+            known_distance: int | None = distances[current_hub]
+
+            if known_distance is None:
+                continue
+
+            if current_distance != known_distance:
+                continue
+
+            if current_priority != priority_count[current_hub]:
+                continue
+
+            if current_hub == end:
+                break
+
+            for connection in graph[current_hub]:
+                opposite_hub: Hub = connection.get_opposite_hub(current_hub)
+
+                if opposite_hub.name in ignored_hubs:
+                    continue
+
+                connection_key: frozenset[str] = frozenset(
+                    {current_hub, opposite_hub.name}
+                )
+
+                if connection_key in ignored_connections:
+                    continue
+
+                zone: str = opposite_hub.properties["zone"]
+
+                if zone == "blocked":
+                    continue
+
+                movement_cost: int = 1
+
+                if zone == "restricted":
+                    movement_cost = 2
+
+                new_distance: int = (current_distance + movement_cost)
+                new_priority: int = current_priority
+
+                if zone == "priority":
+                    new_priority += 1
+
+                opposite_distance: int | None = (
+                    distances[opposite_hub.name]
+                )
+
+                better_distance: bool = (
+                    opposite_distance is None
+                    or new_distance < opposite_distance
+                )
+
+                better_priority: bool = (
+                    opposite_distance == new_distance
+                    and new_priority
+                    > priority_count[opposite_hub.name]
+                )
+
+                if better_distance or better_priority:
+                    distances[opposite_hub.name] = new_distance
+                    priority_count[opposite_hub.name] = new_priority
+                    previous[opposite_hub.name] = current_hub
+
+                    heapq.heappush(
+                        queue,
+                        (
+                            new_distance,
+                            -new_priority,
+                            opposite_hub.name,
+                        )
+                    )
+        return self.reconstruct_path(start, end, previous)
+
+    def reconstruct_path(self, start: str, end: str,
+                         previous: dict[str, str | None],) -> list[str]:
+        """
+        Reconstructs the path generated by Dijkstra.
+        """
+        if start == end:
+            return [start]
+        elif previous[end] is None:
+            return []
+
+        path: list[str] = []
+        current_hub: str | None = end
+
+        while current_hub is not None:
+            path.append(current_hub)
+
+            if current_hub == start:
+                break
+
+            current_hub = previous[current_hub]
+
+        path.reverse()
+
+        if not path or path[0] != start:
+            return []
+
+        return path

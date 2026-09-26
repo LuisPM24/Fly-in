@@ -113,7 +113,8 @@ class MapParser:
             properties = self.validate_hub_properties(line, words[3:],
                                                       line_number)
 
-        return Hub(is_start, is_end, name, x_value, y_value, properties)
+        return Hub(is_start, is_end, name, x_value, y_value, properties,
+                   line_number)
 
     def validate_hub_properties(self, line: str, properties: list[str],
                                 line_number: int) -> dict[str, Any]:
@@ -203,7 +204,7 @@ class MapParser:
 
         self.connection_keys.add(connection_key)
 
-        return Connection(point_a, point_b, capacity)
+        return Connection(point_a, point_b, capacity, line_number)
 
     def parse_connection_properties(self, metadata: str,
                                     line_number: int) -> int:
@@ -249,7 +250,7 @@ class MapParser:
         return_value: list[Connection] = []
 
         for conn in self.connections:
-            if conn.pointA.name or conn.pointB.name is name:
+            if (conn.pointA.name is name) or (conn.pointB.name == name):
                 return_value.append(conn)
 
         return return_value
