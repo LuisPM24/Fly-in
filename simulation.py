@@ -15,12 +15,10 @@ class Simulation:
         if (self.map.start_hub is None) or (self.map.end_hub is None):
             return
         print(
-            self.dijkstra(
-                self.graph,
+            self.yen(
                 self.map.start_hub.name,
                 self.map.end_hub.name,
-                None,
-                None
+                10
             )
         )
 
@@ -185,3 +183,107 @@ class Simulation:
             return []
 
         return path
+
+    def get_path_cost(self, path: list[str]) -> int:
+        """
+        Calculates the total movement cost of a path.
+        """
+        cost: int = 0
+
+        for hub_name in path[1:]:
+            hub: Hub = self.map.hubs[hub_name]
+
+            if hub.properties["zone"] == "restricted":
+                cost += 2
+            else:
+                cost += 1
+
+        return cost
+
+    def get_path_priority(self, path: list[str]) -> int:
+        """
+        Counts priority hubs in a path.
+        """
+        priority_count: int = 0
+
+        for hub_name in path[1:]:
+            hub: Hub = self.map.hubs[hub_name]
+
+            if hub.properties["zone"] == "priority":
+                priority_count += 1
+
+        return priority_count
+
+    def yen(self, start: str, end: str, k: int) -> list[list[str]]:
+        """
+        Finds up to K shortest loopless paths using Yen's algorithm.
+        """
+        if k <= 0:
+            return []
+
+        first_path: list[str] = self.dijkstra(self.graph, start, end)
+
+        if not first_path:
+            return []
+
+        shortest_paths: list[list[str]] = [first_path]
+        candidates: list[tuple[int, int, tuple[str, ...]]] = []
+        candidate_keys: set[tuple[str, ...]] = set()
+
+        for _ in range(1, k):
+            previous_path: list[str] = shortest_paths[-1]
+
+            for index in range(len(previous_path) - 1):
+                spur_node: str = previous_path[index]
+                root_path: list[str] = (previous_path[:index + 1])
+                ignored_connections: set[frozenset[str]] = set()
+
+                for path in shortest_paths:
+                    if (len(path) > index and
+                       path[:index + 1] == root_path):
+                        connection_key: frozenset[str] = frozenset(
+                            {
+                                path[index],
+                                path[index + 1],
+                            }
+                        )
+
+                        ignored_connections.add(connection_key)
+
+                ignored_hubs: set[str] = set(root_path[:-1])
+                spur_path: list[str] = self.dijkstra(self.graph, spur_node,
+                                                     end, ignored_hubs,
+                                                     ignored_connections)
+
+                if not spur_path:
+                    continue
+
+                total_path: list[str] = (root_path[:-1] + spur_path)
+                path_key: tuple[str, ...] = tuple(total_path)
+
+                if path_key in candidate_keys:
+                    continue
+
+                if total_path in shortest_paths:
+                    continue
+
+                cost: int = self.get_path_cost(total_path)
+                priority: int = self.get_path_priority(total_path)
+
+                heapq.heappush(
+                    candidates,
+                    (
+                        cost,
+                        -priority,
+                        path_key,
+                    )
+                )
+                candidate_keys.add(path_key)
+
+            if not candidates:
+                break
+
+            _, _, selected_path = heapq.heappop(candidates)
+            shortest_paths.append(list(selected_path))
+
+        return shortest_paths
