@@ -168,7 +168,7 @@ class MapParser:
 
         return result
 
-    def get_hub(self, name: str, line_number: int) -> Hub:
+    def get_hub(self, name: str, line_number: int = 0) -> Hub:
         """
         Search and return a Hub class
         """

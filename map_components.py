@@ -148,3 +148,8 @@ class Drone:
 
     def print_position(self) -> None:
         print(f"D{self.id}-{self.current_hub.name}")
+
+    def get_next_hub_name(self) -> str:
+        if self.current_hub == self.end:
+            return self.end.name
+        return self.route[self.route_index + 1]

@@ -294,3 +294,75 @@ class Simulation:
             shortest_paths.append(list(selected_path))
 
         return shortest_paths
+
+    def run_turn(self) -> None:
+        proposals: dict[int, str] = {}
+        valid_movements: dict[int, str] = {}
+
+        # Fase de Propuestas
+        for drone in self.drones:
+            next_movement: str = drone.get_next_hub_name()
+
+            if drone.current_hub.name != next_movement:
+                proposals[drone.id] = next_movement
+
+        # Fase de Confirmaciones
+        valid_movements = proposals.copy()
+        changed: bool = True
+
+        while changed:
+            changed = False
+
+            for hub_name, hub in self.map.hubs.items():
+                if hub.is_start or hub.is_end:
+                    continue
+
+                current_drones: int = self.get_drones_in_hub(hub_name)
+
+                leaving: int = 0
+                entering: list[int] = []
+
+                for drone_id, destination in valid_movements.items():
+                    selected_drone: Drone = self.get_drone(drone_id)
+
+                    if selected_drone.current_hub.name == hub_name:
+                        leaving += 1
+
+                    if destination == hub_name:
+                        entering.append(drone_id)
+
+                final_occupancy: int = (
+                    current_drones - leaving + len(entering)
+                )
+
+                max_drones: int = hub.properties["max_drones"]
+
+                while final_occupancy > max_drones and entering:
+                    rejected_drone: int = entering.pop()
+
+                    del valid_movements[rejected_drone]
+
+                    final_occupancy -= 1
+                    changed = True
+
+        # Fase de Aplicar Movimientos
+        for drone_id, destination in valid_movements.items():
+            actual_drone: Drone = self.get_drone(drone_id)
+            next_hub: Hub = self.map.get_hub(destination)
+
+            actual_drone.current_hub = next_hub
+            actual_drone.route_index += 1
+
+    def get_drone(self, drone_id: int) -> Drone:
+        for drone in self.drones:
+            if drone.id == drone_id:
+                return drone
+        raise ValueError(f"Invalid drone_id: {drone_id}")
+
+    def get_drones_in_hub(self, hub_name: str) -> int:
+        count: int = 0
+
+        for drone in self.drones:
+            if drone.current_hub.name == hub_name:
+                count += 1
+        return count
