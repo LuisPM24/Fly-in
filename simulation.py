@@ -1,6 +1,6 @@
 import heapq
 from map_parser import MapParser
-from map_components import Hub, Connection
+from map_components import Hub, Connection, Drone
 
 
 class Simulation:
@@ -11,16 +11,23 @@ class Simulation:
     def __init__(self, map_parser: MapParser) -> None:
         self.map = map_parser
         self.graph: dict[str, list[Connection]] = self.get_graph()
+        self.routes: list[tuple[list[str], int]] = []
+        self.drones: list[Drone] = []
 
-        if (self.map.start_hub is None) or (self.map.end_hub is None):
-            return
-        print(
-            self.yen(
-                self.map.start_hub.name,
-                self.map.end_hub.name,
-                10
-            )
-        )
+        if (self.map.start_hub is None or self.map.end_hub is None or
+           self.map.nb_drones is None):
+            raise ValueError("Invalid map for simulation")
+
+        for route in self.yen(self.map.start_hub.name, self.map.end_hub.name,
+                              10):
+            self.routes.append((route, self.get_path_cost(route)))
+
+        if not self.routes:
+            raise ValueError("No route found between start and end")
+
+        for drone_id in range(1, self.map.nb_drones + 1):
+            self.drones.append(Drone(drone_id, self.routes[0][0],
+                                     self.map.start_hub, self.map.end_hub))
 
     def get_graph(self) -> dict[str, list[Connection]]:
         """

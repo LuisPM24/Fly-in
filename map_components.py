@@ -134,3 +134,17 @@ class Connection:
         else:
             raise ValueError(f"(Line {self.declaration_line}) Invalid name at "
                              f"'get_opposite_hub' function: '{name}'")
+
+
+class Drone:
+    def __init__(self, drone_id: int, route: list[str], start: Hub,
+                 end: Hub) -> None:
+        self.id = drone_id
+        self.route = route
+        self.start = start
+        self.end = end
+        self.current_hub = start
+        self.route_index: int = 0
+
+    def print_position(self) -> None:
+        print(f"D{self.id}-{self.current_hub.name}")
