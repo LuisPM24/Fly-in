@@ -24,6 +24,8 @@
 #### For Yen's Algorithm
 - [Yen's Algorithm: Video Explanation](https://www.youtube.com/watch?v=bQCewgMFaYQ)
 
-- [Yen's Algorithm: Information](https://www.ultipa.com/docs/graph-algorithms/yens)
+- [Yen's Algorithm: Information 1](https://www.ultipa.com/docs/graph-algorithms/yens)
+
+- [Yen's Algorithm: Information 2](https://dev.to/whoakarsh/finding-the-k-shortest-paths-using-yens-algorithm-in-python-1gka)
 
 - [Yen's Algorithm: Image Example](https://www.linchenguang.com/2018/01/30/Yen-s-algorithm/)

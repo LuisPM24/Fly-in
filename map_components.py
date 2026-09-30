@@ -1,4 +1,7 @@
 from typing import Any
+from hashlib import sha256
+from rich.color import Color, ColorParseError
+from rich.text import Text
 
 
 class Hub:
@@ -146,10 +149,49 @@ class Drone:
         self.current_hub = start
         self.route_index: int = 0
 
-    def return_movement(self) -> str:
-        return (f"D{self.id}-{self.current_hub.name}")
-
     def get_next_hub_name(self) -> str:
+        """
+        Returns the next hub in the route
+        """
         if self.current_hub == self.end:
             return self.end.name
         return self.route[self.route_index + 1]
+
+    def return_movement(self) -> Text:
+        """
+        Returns the colored movement of the drone
+        """
+        movement: str = f"D{self.id}-{self.current_hub.name}"
+        color: str = self.current_hub.properties["color"]
+
+        if color == "none":
+            return Text(movement)
+
+        try:
+            Color.parse(color)
+            return Text(
+                movement,
+                style=f"bold {color}"
+            )
+
+        except ColorParseError:
+            generated_color: str = self.generate_color(color)
+
+            return Text(
+                movement,
+                style=f"bold {generated_color}"
+            )
+
+    def generate_color(self, color_name: str) -> str:
+        """
+        Generates a stable hexadecimal color from a word
+        """
+        digest: bytes = sha256(
+            color_name.encode("utf-8")
+        ).digest()
+
+        red: int = 80 + digest[0] % 176
+        green: int = 80 + digest[1] % 176
+        blue: int = 80 + digest[2] % 176
+
+        return f"#{red:02x}{green:02x}{blue:02x}"

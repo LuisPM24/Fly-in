@@ -9,7 +9,8 @@ authors = [
 dependencies = [
     "mypy",
     "flake8",
-    "pytest"
+    "pytest",
+    "rich"
 ]
 
 [tool.setuptools]

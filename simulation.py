@@ -1,6 +1,8 @@
 import heapq
 from map_parser import MapParser
 from map_components import Hub, Connection, Drone
+from rich.console import Console
+from rich.text import Text
 
 
 class Simulation:
@@ -300,6 +302,9 @@ class Simulation:
         return shortest_paths
 
     def assign_route(self) -> list[str]:
+        """
+        Returns and updates the cheapest and less concurrent route
+        """
         selected_route: list[str] = self.routes[0][0]
         selected_cost: int = self.routes[0][1]
         drones_in_route: int = self.routes[0][2]
@@ -322,18 +327,18 @@ class Simulation:
         return selected_route
 
     def run_turn(self) -> None:
+        """
+        Run a turn where all drones move or wait
+        """
         proposals: dict[int, str] = {}
         valid_movements: dict[int, str] = {}
-        movements_str: str = ""
 
-        # Fase de Propuestas
         for drone in self.drones:
             next_movement: str = drone.get_next_hub_name()
 
             if drone.current_hub.name != next_movement:
                 proposals[drone.id] = next_movement
 
-        # Fase de Confirmaciones
         valid_movements = proposals.copy()
         changed: bool = True
 
@@ -372,24 +377,35 @@ class Simulation:
                     final_occupancy -= 1
                     changed = True
 
-        # Fase de Aplicar Movimientos
+        console: Console = Console()
+
+        movements: list[Text] = []
+
         for drone_id, destination in valid_movements.items():
             actual_drone: Drone = self.get_drone(drone_id)
             next_hub: Hub = self.map.get_hub(destination)
 
             actual_drone.current_hub = next_hub
             actual_drone.route_index += 1
-            movements_str += actual_drone.return_movement() + " "
 
-        print(movements_str)
+            movements.append(actual_drone.return_movement())
+
+        if movements:
+            console.print(*movements, sep=" ")
 
     def get_drone(self, drone_id: int) -> Drone:
+        """
+        Returns a Drone by its id
+        """
         for drone in self.drones:
             if drone.id == drone_id:
                 return drone
         raise ValueError(f"Invalid drone_id: {drone_id}")
 
     def get_drones_in_hub(self, hub_name: str) -> int:
+        """
+        Returns the amount of drones in the indicated hub
+        """
         count: int = 0
 
         for drone in self.drones:
@@ -398,6 +414,9 @@ class Simulation:
         return count
 
     def check_simulation_end(self) -> bool:
+        """
+        Checks if all drones have reached the meta
+        """
         for drone in self.drones:
             if drone.current_hub != drone.end:
                 return False
