@@ -121,7 +121,7 @@ class Connection:
         Returns the zone type
         """
         hub: Hub = self.get_hub(name)
-        return hub.properties["zone"]
+        return str(hub.properties["zone"])
 
     def get_opposite_hub(self, name: str) -> Hub:
         """
@@ -146,8 +146,8 @@ class Drone:
         self.current_hub = start
         self.route_index: int = 0
 
-    def print_position(self) -> None:
-        print(f"D{self.id}-{self.current_hub.name}")
+    def return_movement(self) -> str:
+        return (f"D{self.id}-{self.current_hub.name}")
 
     def get_next_hub_name(self) -> str:
         if self.current_hub == self.end:

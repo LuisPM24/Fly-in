@@ -11,7 +11,7 @@ class Simulation:
     def __init__(self, map_parser: MapParser) -> None:
         self.map = map_parser
         self.graph: dict[str, list[Connection]] = self.get_graph()
-        self.routes: list[tuple[list[str], int]] = []
+        self.routes: list[tuple[list[str], int, int]] = []
         self.drones: list[Drone] = []
 
         if (self.map.start_hub is None or self.map.end_hub is None or
@@ -20,14 +20,18 @@ class Simulation:
 
         for route in self.yen(self.map.start_hub.name, self.map.end_hub.name,
                               10):
-            self.routes.append((route, self.get_path_cost(route)))
+            self.routes.append((route, self.get_path_cost(route), 0))
 
         if not self.routes:
             raise ValueError("No route found between start and end")
 
         for drone_id in range(1, self.map.nb_drones + 1):
-            self.drones.append(Drone(drone_id, self.routes[0][0],
+            route = self.assign_route()
+            self.drones.append(Drone(drone_id, route,
                                      self.map.start_hub, self.map.end_hub))
+
+        while self.check_simulation_end() is False:
+            self.run_turn()
 
     def get_graph(self) -> dict[str, list[Connection]]:
         """
@@ -295,9 +299,32 @@ class Simulation:
 
         return shortest_paths
 
+    def assign_route(self) -> list[str]:
+        selected_route: list[str] = self.routes[0][0]
+        selected_cost: int = self.routes[0][1]
+        drones_in_route: int = self.routes[0][2]
+        route_score: int = selected_cost + drones_in_route
+        route_index: int = 0
+
+        for count in range(1, len(self.routes)):
+            score: int = self.routes[count][1] + self.routes[count][2]
+
+            if route_score > score:
+                selected_route = self.routes[count][0]
+                selected_cost = self.routes[count][1]
+                drones_in_route = self.routes[count][2]
+                route_index = count
+                route_score = score
+
+        self.routes[route_index] = (selected_route, selected_cost,
+                                    drones_in_route + 1)
+
+        return selected_route
+
     def run_turn(self) -> None:
         proposals: dict[int, str] = {}
         valid_movements: dict[int, str] = {}
+        movements_str: str = ""
 
         # Fase de Propuestas
         for drone in self.drones:
@@ -352,6 +379,9 @@ class Simulation:
 
             actual_drone.current_hub = next_hub
             actual_drone.route_index += 1
+            movements_str += actual_drone.return_movement() + " "
+
+        print(movements_str)
 
     def get_drone(self, drone_id: int) -> Drone:
         for drone in self.drones:
@@ -366,3 +396,9 @@ class Simulation:
             if drone.current_hub.name == hub_name:
                 count += 1
         return count
+
+    def check_simulation_end(self) -> bool:
+        for drone in self.drones:
+            if drone.current_hub != drone.end:
+                return False
+        return True
