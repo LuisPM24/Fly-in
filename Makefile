@@ -7,7 +7,7 @@ install:
 
 run:
 	@echo "$(YELLOW) Running 'make run' command$(RESET)\n"
-	@uv run python -m main
+	@uv run python3 main.py --map "maps/challenger/01_the_impossible_dream.txt"
 	@echo "$(GREEN)\n'make run' command completed$(RESET)"
 
 debug:
