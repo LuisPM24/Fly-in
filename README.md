@@ -30,13 +30,44 @@ The only property that is available for connections is **Max link capacity** tha
 ### Why not use only Dijkstra instead of Yen?
 **Dijkstra's algorithm** only returns one shortest path between two hubs. If every drone used that same route, the simulation could create unnecessary bottlenecks and would not take advantage of alternative paths available in the graph. **Yen's algorithm** solves this limitation by finding several of the shortest alternative routes. This provides more routing options and allows the simulation to distribute drones across different paths instead of depending on a single one.
 
-## Visual representation features
+### How do you decide the route taken by the drone?
+Every route has a cost and an amount of drones that will take this path. The path selection is decided by the lesser sum between those two values.
 
-## Example input and expected output
+## Visual representation features
+Every line is a turn and when a drone moves, prints it's ID and new location with the color of the hub, like this:
+
+```bash
+<ID>-<hub name>
+```
 
 # Instructions
 
+## Expected input
+```bash
+# Run the project
+make run
+uv run python3 main.py --map <map>
+
+# Install dependencies
+make install
+
+# Run Flake8 and Mypy
+make lint
+
+# Clean trash
+make clean
+```
+
+## Expected output
+```bash
+D1-waypoint1
+D1-waypoint2 D2-waypoint1
+D1-goal D2-waypoint2
+D2-goal
+```
+
 # Resources
+*AI has been used to explain the algorithms and to provide support in edge cases during development*
 
 #### For Dijkstra Algorithm
 - [Dijkstra Algorithm: Video Explanation](https://www.youtube.com/watch?v=bQCewgMFaYQ)
@@ -53,5 +84,4 @@ The only property that is available for connections is **Max link capacity** tha
 - [Yen's Algorithm: Image Example](https://www.linchenguang.com/2018/01/30/Yen-s-algorithm/)
 
 #### Memory leaks
-
 - [Finding a memory leak in my python code](https://tamir.dev/posts/finding-a-memory-leak-in-my-python-code/)
